@@ -1,0 +1,109 @@
+---
+- name: enable https packages
+  apt:
+    name: 'apt-transport-https'
+    update_cache: yes
+  tags:
+    - apt
+- name: Install the gpg keys
+  apt_key:
+    url: "{{ item }}"
+    state: present
+  loop:
+    - "https://deb.nodesource.com/gpgkey/nodesource.gpg.key"
+    - "https://dl.yarnpkg.com/{{ ansible_distribution | lower }}/pubkey.gpg"
+
+- name: Install the nodejs LTS repos
+  apt_repository:
+    repo: "{{ item }}"
+    state: present
+  loop:
+    - "deb http://deb.nodesource.com/node_11.x {{ ansible_distribution_release }} main"
+    - "deb http://dl.yarnpkg.com/{{ ansible_distribution | lower }}/ stable main"
+
+- name: install photonix
+  apt:
+    name: [
+      "curl",
+      "build-essential",
+      "gnupg",
+      "gunicorn",
+      "libimage-exiftool-perl",
+      "libjpeg-dev",
+      "libpq-dev",
+      "libtiff5-dev",
+      "netcat",
+      "nginx-light",
+      "supervisor",
+      "nodejs",
+      "yarn",
+    ]
+    update_cache: yes
+
+- name: Install the nodejs
+  apt:
+    name: nodejs
+    state: present
+
+- name: create project dirs
+  file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - /srv/ui
+    - /srv/backend
+    - /srv/system
+
+- name: copy files across
+  synchronize:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    recursive: yes
+    delete: yes
+  tags:
+    - sync
+  loop:
+    - src: "{{ playbook_dir }}/../ui/package.json"
+      dest: /srv/ui/package.json
+    - src: "{{ playbook_dir }}/../ui/yarn.lock"
+      dest: /srv/ui/yarn.lock
+    - src: "{{ playbook_dir }}/../backend/"
+      dest: /srv/backend/
+    - src: "{{ playbook_dir }}/../system/"
+      dest: /srv/system/
+    - src: "{{ playbook_dir }}/../ui/config/"
+      dest: /srv/ui/config/
+    - src: "{{ playbook_dir }}/../ui/public/"
+      dest: /srv/ui/public/
+    - src: "{{ playbook_dir }}/../ui/src/"
+      dest: /srv/ui/src/
+    - src: "{{ playbook_dir }}/../ui/scripts/"
+      dest: /srv/ui/scripts/
+    - src: "{{ playbook_dir }}/../requirements.txt"
+      dest: /srv/requirements.txt
+    - src: "{{ playbook_dir }}/../system/supervisord.conf"
+      dest: /etc/supervisord.conf
+
+- name: install js packages with yarn
+  command: yarn install
+  args:
+    chdir: /srv/ui
+
+- name: install python packages
+  pip:
+    requirements: /srv/requirements.txt
+
+- name: restart postgres
+  service:
+    name: postgresql
+    status: restarted
+
+- name: apply migrations
+  command: python /srv/backend/manage.py migrate
+
+- name: reset redis lock
+  command: python /srv/backend/manage.py reset_redis_locks
+
+- name: start supervisord
+  command: supervisord -c /etc/supervisord.conf
+

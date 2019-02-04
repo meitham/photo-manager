@@ -1,0 +1,66 @@
+---
+- name: Install the gpg keys
+  apt_key:
+    url: "https://www.postgresql.org/media/keys/ACCC4CF8.asc"
+    state: present
+  tags:
+    - apt
+
+- name: Install the nodejs LTS repos
+  apt_repository:
+    repo: "deb http://apt.postgresql.org/pub/repos/apt/ stretch-pgdg main"
+    state: present
+    update_cache: yes
+  tags:
+    - apt
+
+- name: install postgres
+  apt:
+    name: ["postgresql", "libpq-dev", "python-psycopg2"]
+    update_cache: yes
+- name: listen to external interface
+  lineinfile:
+    path: /etc/postgresql/11/main/postgresql.conf
+    regexp: "^#listen_addresses =.*"
+    line: "listen_addresses = '*'"
+  tags:
+    - db
+- name: expose db for client
+  lineinfile:
+    path: /etc/postgresql/11/main/pg_hba.conf
+    insertafter: EOF
+    line: "host \t {{ item.db }} \t {{ item.user }} \t {{ item.client }} \t md5"
+  loop: "{{ postgres }}"
+  tags:
+    - db
+- name: ensure database is created
+  postgresql_db:
+    name: "{{ item.db }}"
+  become: yes
+  become_user: postgres
+  loop: "{{ postgres }}"
+  tags:
+    - mkdb
+- postgresql_user:
+    name: "{{ item.user }}"
+    password: "{{ item.pass }}"
+    expires: infinity
+    priv: ALL
+    db: "{{ item.db }}"
+    state: present
+  become: yes
+  become_user: postgres
+  loop: "{{ postgres }}"
+  tags:
+    - db
+    - user
+- name: change db ownership
+  postgresql_db:
+    name: "{{ item.db }}"
+    owner: "{{ item.user }}"
+  become: yes
+  become_user: postgres
+  loop: "{{ postgres }}"
+  tags:
+    - db
+    - chown

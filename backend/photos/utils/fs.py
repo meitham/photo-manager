@@ -4,6 +4,7 @@ import os
 from django.conf import settings
 
 
+# TODO depricate in favour of pathlib.Path.mkdir
 def mkdir_p(path):
     try:
         os.makedirs(path)

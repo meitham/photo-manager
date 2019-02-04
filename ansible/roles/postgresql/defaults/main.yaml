@@ -1,0 +1,6 @@
+---
+postgres:
+  - db: photonix
+    user: admin
+    pass: "password"
+    client: localhost

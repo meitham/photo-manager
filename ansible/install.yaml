@@ -1,0 +1,16 @@
+---
+- hosts: photonix
+  remote_user: root
+  tasks:
+  - import_role:
+      name: postgresql
+    tags:
+      - postgresql
+  - import_role:
+      name: redis
+    tags:
+      - redis
+  - import_role:
+      name: photonix
+    tags:
+      - photonix

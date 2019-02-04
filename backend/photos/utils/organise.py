@@ -144,6 +144,7 @@ def import_photos_in_place(orig):
     imported = 0
     were_bad = 0
 
+    # TODO replace walk with scandir.
     for r, d, f in os.walk(orig):
         for fn in sorted(f):
             filepath = os.path.join(r, fn)

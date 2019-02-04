@@ -1,13 +1,12 @@
-from datetime import datetime
-from decimal import Decimal
-import json
 import mimetypes
 import os
+from datetime import datetime
+from decimal import Decimal
 
 from django.utils.timezone import utc
-
 from photos.models import Camera, Lens, Photo, PhotoFile
-from photos.utils.metadata import PhotoMetadata, parse_datetime, get_datetime, parse_gps_location
+from photos.utils.metadata import (PhotoMetadata, parse_datetime,
+                                   parse_gps_location)
 
 
 def record_photo(path):
